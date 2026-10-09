@@ -10,7 +10,7 @@ The designs are written in PipelineC's Python front end (`pypeline`) and target 
 
 | Project | Description | Status |
 |---------|-------------|--------|
-| [`uart/`](uart/) | UART protocol (8N1 transmitter and receiver) with an echo example, plus a hand-written Verilog version. | In progress |
+| [`uart/`](uart/) | UART protocol (8N1 transmitter and receiver) with an echo example, plus a hand-written Verilog version. | Done |
 | [`matrix_multiplication/`](matrix_multiplication/) | Matrix multiplication over UART: base, DSP-optimized, variable-size and parallel-batch versions, compared against Verilog. | In progress |
 
 ## My board: Sipeed Tang Nano 20K
