@@ -55,7 +55,29 @@ Each project is self-contained and has its own `README.md`. The only cross-depen
 source env.sh    # defines PIPELINEC_DIR (path to your PipelineC clone) and the tools' PATH
 ```
 
-Native simulation and synthesis for the Tang Nano 20K:
+### `run.py`: build, flash and measure
+
+`run.py` drives the whole flow (PipelineC → Gowin EDA → openFPGALoader) from one command, using each project's `project.toml`:
+
+```bash
+python run.py help                      # full help
+python run.py --list                    # projects and subprojects
+python run.py matmul                    # build + flash (SRAM) + bench
+python run.py matmul --build            # synthesize only
+python run.py matmul/parallel --build   # a subproject (matmul/base|optimized|n|parallel)
+python run.py matmul --flash --persist  # write to the board's flash instead of SRAM
+python run.py matmul --build --force    # ignore the synthesis cache
+python run.py matmul --board tangnano9k # another board (see below)
+```
+
+- **Cache and output:** builds go to `build/<project>/<hash>/` (bitstream: `top/impl/pnr/top.fs`, plus `metrics.json` with Fmax and utilization). The hash covers the sources, pins, part and PipelineC revision, so nothing is resynthesized unless something changed.
+- **Subprojects:** a `project.toml` can declare `[variants.<name>]` tables. `matmul` is an alias of its `default_variant` (`matmul/optimized`).
+- **Boards:** `--board` takes an openFPGALoader board name (`openFPGALoader --list-boards`) and defaults to `tangnano20k`. The top-level keys of each `project.toml` describe the Tang Nano 20K; for any other board add a `[boards.<board>]` table overriding at least `part` and `pins` (and `clk_mhz` if the clock is not 27 MHz). Without that table `run.py` aborts instead of reusing the 20K's part and pins. Only the Tang Nano 20K has been tested.
+- **Bench:** `--bench` needs the project's `host.py` (not written yet) and appends a row to `results/results.csv`.
+
+### Manual commands
+
+Native simulation and synthesis for the Tang Nano 20K without `run.py`:
 
 ```bash
 # UART (echo)

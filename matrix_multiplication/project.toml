@@ -1,0 +1,34 @@
+# Rutas relativas a este fichero.
+name = "matmul"
+part = "GW2AR-LV18QN88C8/I7"
+pins = "pipelinec/matrix_multiplication.cst"   # los 4 diseños usan los mismos pines
+# Directorios cuyo contenido (.py, .cst) entra en el hash de la caché de síntesis
+sources = ["pipelinec", "../uart/pipelinec"]
+clk_mhz = 27.0            # reloj real con el que corre el diseño (@MAIN(27.0)); NO es el fmax
+host = "app/matrix_multiplication.py"
+port = "/dev/ttyUSB1"     # ttyUSB0 es JTAG
+baud = 1000000
+default_variant = "optimized"   # lo que se construye con `run.py matmul`
+
+# Otras placas (`run.py matmul --board <placa>`): la config de arriba es la de tangnano20k.
+# Descomenta y rellena con la parte, el .cst y el reloj de la placa (no vienen inventados aquí):
+# [boards.tangnano9k]
+# part = "..."
+# pins = "pipelinec/<pines_de_esa_placa>.cst"
+# clk_mhz = 27.0
+
+# Subproyectos: `run.py matmul/<variante>`. Cada uno puede sobreescribir cualquier clave de arriba
+# y añadir `env` (variables de entorno de la síntesis) y `host_args` (argumentos extra para el host).
+[variants.base]
+top = "pipelinec/matrix_multiplication.py"
+
+[variants.optimized]
+top = "pipelinec/matrix_multiplication_optimized.py"
+
+[variants.n]
+top = "pipelinec/matrix_multiplication_n.py"
+host_args = ["--con-n"]
+
+[variants.parallel]
+top = "pipelinec/matrix_multiplication_parallel.py"
+env = { NUM_PRODUCTS = "4" }    # K productos a la vez (1..15)

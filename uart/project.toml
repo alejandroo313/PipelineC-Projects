@@ -1,0 +1,9 @@
+# Rutas relativas a este fichero. Eco UART: sin host.py, solo sirve para build/flash.
+name = "uart"
+top = "pipelinec/uart_echo_top.py"
+part = "GW2AR-LV18QN88C8/I7"
+pins = "pipelinec/uart_echo_top.cst"
+sources = ["pipelinec"]
+clk_mhz = 27.0
+port = "/dev/ttyUSB1"
+baud = 115200
