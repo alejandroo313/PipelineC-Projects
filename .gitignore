@@ -1,0 +1,37 @@
+# Salida de PipelineC y de las herramientas de síntesis
+*.log
+*.jou
+*.str
+
+# Vivado / Quartus / Yosys / nextpnr
+.Xil/
+*.runs/
+*.cache/
+*.hw/
+*.sim/
+*.ip_user_files/
+db/
+incremental_db/
+*.bit
+*.bin
+
+# Simulación
+*.vcd
+*.fst
+*.ghw
+work/
+*.o
+
+# Editores y SO
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Python
+__pycache__/
+.mypy_cache/
+
+# Builds locales
+build/
+pipelinec_output_*/
