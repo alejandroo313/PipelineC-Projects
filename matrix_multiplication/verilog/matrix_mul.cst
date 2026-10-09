@@ -1,0 +1,15 @@
+// Pinout para matrix_mul.v / matrix_mul_opt.v (Tang Nano 20K).
+// Puertos escalares del modulo Verilog: sus nombres se usan tal cual (sin "[0]", a diferencia
+// del flujo PipelineC, donde los pines son vectores de 1 bit).
+
+IO_LOC "clk" 4;
+IO_PORT "clk" PULL_MODE=UP IO_TYPE=LVCMOS33 BANK_VCCIO=3.3;
+CLOCK_LOC "clk" BUFG;
+
+// rx_pin: entrada serie desde el PC (pin 70 = /dev/ttyUSB1, puente BL616)
+IO_LOC "rx_pin" 70;
+IO_PORT "rx_pin" PULL_MODE=UP IO_TYPE=LVCMOS33 BANK_VCCIO=3.3;
+
+// tx_pin: salida serie hacia el PC (pin 69)
+IO_LOC "tx_pin" 69;
+IO_PORT "tx_pin" PULL_MODE=UP DRIVE=8 IO_TYPE=LVCMOS33 BANK_VCCIO=3.3;

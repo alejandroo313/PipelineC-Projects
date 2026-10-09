@@ -1,0 +1,15 @@
+// Pinout para matrix_multiplication.py (Tang Nano 20K).
+// Los pines son Input[uint1_t] / Output[uint1_t]: el nombre de puerto es el del wire y, al ser
+// unsigned(0 downto 0) en el top.vhd generado, Gowin lo ve como "<nombre>[0]".
+
+IO_LOC "clk_27p0" 4;
+IO_PORT "clk_27p0" PULL_MODE=UP IO_TYPE=LVCMOS33 BANK_VCCIO=3.3;
+CLOCK_LOC "clk_27p0" BUFG;
+
+// rx_pin: entrada serie desde el PC (pin 70 = /dev/ttyUSB1, puente BL616)
+IO_LOC "rx_pin[0]" 70;
+IO_PORT "rx_pin[0]" PULL_MODE=UP IO_TYPE=LVCMOS33 BANK_VCCIO=3.3;
+
+// tx_pin: salida serie hacia el PC (pin 69)
+IO_LOC "tx_pin[0]" 69;
+IO_PORT "tx_pin[0]" PULL_MODE=UP DRIVE=8 IO_TYPE=LVCMOS33 BANK_VCCIO=3.3;
