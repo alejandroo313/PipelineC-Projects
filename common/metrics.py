@@ -29,20 +29,38 @@ Semantica (start/stop en el ciclo t_start / t_stop):
   * start y stop en el mismo ciclo con el contador parado: se ignoran (medicion de 0 ciclos no valida).
   * cycles = t_stop - t_start (stop 5 ciclos despues de start -> 5).
   * Un nuevo start tras un stop reinicia la cuenta.
+
+Nota de sintesis (Gowin EDA, gw_sh 1.9.x): si el pulso `stop` nace de comparaciones combinacionales de
+registros que ya usa la FSM (p. ej. cell.row/cell.col en el matmul), gw_sh aborta con
+"giaStr.c: Str_ObjCreate: Assertion `p->nObjs < p->nObjsAlloc' failed" aunque el contador sea
+pequeno. Funciona alimentandolo con un registro que la FSM pone a 1 en el ciclo del evento (el pulso
+llega un ciclo tarde; si start y stop se retrasan igual, la medida no cambia). Ver
+matrix_multiplication_optimized.py (compute_start_r / compute_stop_r).
 """
 from pypeline import *
 
 
-def make_cycle_counter():
-    @struct
-    class metrics_t(NamedTuple):
-        cycles: uint64_t
-        running: uint1_t
-        done: uint1_t
+_COUNT_TYPES = {16: uint16_t, 32: uint32_t, 64: uint64_t}
+
+
+# Un unico tipo para todos los anchos: asi se pueden mezclar contadores de distinto ancho en un diseno.
+@struct
+class metrics_t(NamedTuple):
+    cycles: uint64_t
+    running: uint1_t
+    done: uint1_t
+
+
+def make_cycle_counter(bits: int = 64):
+    """Crea un contador de `bits` bits (16, 32 o 64). La salida `cycles` es siempre uint64_t.
+
+    Elige el ancho mas pequeno que cubra tu medicion (2^bits ciclos): 16 bits = 2,4 ms a 27 MHz,
+    32 bits = 159 s, 64 bits = sin limite practico (por defecto, como los 8 bytes del protocolo)."""
+    count_t = _COUNT_TYPES[bits]
 
     @hw_func
     def cycle_counter(start: uint1_t, stop: uint1_t) -> metrics_t:
-        count: Reg[uint64_t] = 0
+        count: Reg[count_t] = 0
         running: Reg[uint1_t] = 0
 
         # Valores registrados de este ciclo (antes de asignar: tras asignar un Reg su nombre ya
@@ -68,4 +86,21 @@ def make_cycle_counter():
 def cycles_byte(cycles: uint64_t, idx: uint3_t) -> uint8_t:
     """Byte `idx` (0 = menos significativo) de `cycles`: orden little-endian, como el resto de
     protocolos del repositorio."""
-    return (cycles >> (idx * 8)) & 0xFF
+    # Mux de desplazamientos constantes: el desplazamiento variable de 64 bits (cycles >> idx*8) se
+    # simula bien pero PipelineC no lo traduce a VHDL (EX4923 en Gowin).
+    rv: uint8_t = cycles & 0xFF
+    if idx == 1:
+        rv = (cycles >> 8) & 0xFF
+    elif idx == 2:
+        rv = (cycles >> 16) & 0xFF
+    elif idx == 3:
+        rv = (cycles >> 24) & 0xFF
+    elif idx == 4:
+        rv = (cycles >> 32) & 0xFF
+    elif idx == 5:
+        rv = (cycles >> 40) & 0xFF
+    elif idx == 6:
+        rv = (cycles >> 48) & 0xFF
+    elif idx == 7:
+        rv = (cycles >> 56) & 0xFF
+    return rv

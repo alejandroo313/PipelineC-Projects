@@ -120,9 +120,14 @@ def flash(info, persist, board):
 
 
 def bench(d, cfg, info):
+    if not cfg.get("host"):
+        sys.exit(f"[bench] '{cfg['name']}' no tiene `host` en su project.toml")
+    if not cfg.get("metrics", False):
+        sys.exit(f"[bench] '{cfg['name']}' no devuelve contadores de ciclos; usa un subproyecto con metrics = true "
+                 f"(p. ej. matmul/optimized)")
     host = d / cfg["host"]
     if not host.exists():
-        sys.exit(f"[bench] no existe {host} (se escribe en el paso 2)")
+        sys.exit(f"[bench] no existe {host}")
     (ROOT / "results").mkdir(exist_ok=True)
     cmd = [sys.executable, str(host), "--port", cfg["port"], "--baud", str(cfg["baud"]),
            "--project", cfg["name"], "--board", cfg.get("board", DEFAULT_BOARD), "--clk-mhz", str(cfg["clk_mhz"]),
@@ -143,6 +148,8 @@ def main():
   python run.py matmul --flash            flashea a SRAM (demo temporal)
   python run.py matmul --flash --persist  flashea a flash (demo final)
   python run.py matmul/parallel --build   construye un subproyecto
+  python run.py matmul --bench            solo mide (placa ya cargada): 5 ejecuciones -> results/results.csv
+  python run.py --plot                    gráficos de results/results.csv -> results/plots/
   python run.py matmul --build --force    resintetiza ignorando la caché
   python run.py matmul --board tangnano9k construye y flashea para otra placa (ver abajo)
 
@@ -168,11 +175,15 @@ requiere `source env.sh` (PIPELINEC_DIR y PATH de Gowin/openFPGALoader)""")
     ap.add_argument("--bench", action="store_true", help="ejecutar host.py y añadir fila a results/results.csv")
     ap.add_argument("--board", default=DEFAULT_BOARD, metavar="PLACA",
                     help=f"placa destino, nombre de openFPGALoader (por defecto {DEFAULT_BOARD})")
+    ap.add_argument("--plot", action="store_true", help="generar los graficos de results/results.csv en results/plots/")
     ap.add_argument("--persist", action="store_true", help="con --flash: grabar en flash (por defecto SRAM)")
     ap.add_argument("--force", action="store_true", help="ignorar la caché de síntesis")
     a = ap.parse_args()
     if a.project == "help":
         ap.print_help()
+        return
+    if a.plot:
+        subprocess.run([sys.executable, str(ROOT / "common" / "plot_results.py")], check=True)
         return
     ps = projects()
     if a.list or not a.project:

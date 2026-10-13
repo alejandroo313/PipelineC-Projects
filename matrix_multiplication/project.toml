@@ -5,7 +5,8 @@ pins = "pipelinec/matrix_multiplication.cst"   # los 4 diseños usan los mismos 
 # Directorios cuyo contenido (.py, .cst) entra en el hash de la caché de síntesis
 sources = ["pipelinec", "../uart/pipelinec"]
 clk_mhz = 27.0            # reloj real con el que corre el diseño (@MAIN(27.0)); NO es el fmax
-host = "app/matrix_multiplication.py"
+host = "host.py"            # --bench: envia, verifica en CPU y escribe una fila por ejecucion en results.csv
+metrics = false             # solo las variantes que devuelven contadores de ciclos pueden hacer --bench
 port = "/dev/ttyUSB1"     # ttyUSB0 es JTAG
 baud = 1000000
 default_variant = "optimized"   # lo que se construye con `run.py matmul`
@@ -24,6 +25,7 @@ top = "pipelinec/matrix_multiplication.py"
 
 [variants.optimized]
 top = "pipelinec/matrix_multiplication_optimized.py"
+metrics = true
 
 [variants.n]
 top = "pipelinec/matrix_multiplication_n.py"

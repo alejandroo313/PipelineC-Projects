@@ -68,12 +68,15 @@ python run.py matmul/parallel --build   # a subproject (matmul/base|optimized|n|
 python run.py matmul --flash --persist  # write to the board's flash instead of SRAM
 python run.py matmul --build --force    # ignore the synthesis cache
 python run.py matmul --board tangnano9k # another board (see below)
+python run.py matmul --bench            # measure (board already loaded) -> results/results.csv
+python run.py --plot                    # plots of results/results.csv
 ```
 
 - **Cache and output:** builds go to `build/<project>/<hash>/` (bitstream: `top/impl/pnr/top.fs`, plus `metrics.json` with Fmax and utilization). The hash covers the sources, pins, part and PipelineC revision, so nothing is resynthesized unless something changed.
 - **Subprojects:** a `project.toml` can declare `[variants.<name>]` tables. `matmul` is an alias of its `default_variant` (`matmul/optimized`).
 - **Boards:** `--board` takes an openFPGALoader board name (`openFPGALoader --list-boards`) and defaults to `tangnano20k`. The top-level keys of each `project.toml` describe the Tang Nano 20K; for any other board add a `[boards.<board>]` table overriding at least `part` and `pins` (and `clk_mhz` if the clock is not 27 MHz). Without that table `run.py` aborts instead of reusing the 20K's part and pins. Only the Tang Nano 20K has been tested.
-- **Bench:** `--bench` needs the project's `host.py` (not written yet) and appends a row to `results/results.csv`.
+- **Bench:** `--bench` runs the project's `host.py` (5 runs by default), verifies each result against the CPU and appends one row per run to `results/results.csv` (`fecha, proyecto, placa, n, ciclos_total, ciclos_compute, clk_mhz, fmax_mhz, tiempo_fpga_us, tiempo_compute_us, tiempo_cpu_us, speedup, speedup_compute, ok, git_hash`). Times are `cycles / clk_mhz` (the FPGA clock, not Fmax). It requires a subproject with `metrics = true` (today `matmul/optimized`). The CPU time is a NumPy `uint16` matmul, which for 3×3 is dominated by call overhead: read it as a lower bound for the CPU.
+- **Plots:** `python run.py --plot` writes `results/plots/tiempos.png` (FPGA total / compute-only / CPU per project) and `speedup_n.png` (speedup vs N) from the rows with `ok = 1`.
 
 ### Manual commands
 

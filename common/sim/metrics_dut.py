@@ -4,10 +4,10 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from pypeline import *
-from metrics import make_cycle_counter, cycles_byte
+from metrics import make_cycle_counter, cycles_byte, metrics_t
 
 CLK_FREQ_MHZ = 27.0
-cycle_counter, metrics_t = make_cycle_counter()
+cycle_counter, _ = make_cycle_counter()
 
 start_in: Input[uint1_t]
 stop_in: Input[uint1_t]

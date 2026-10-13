@@ -1,0 +1,6 @@
+fecha,proyecto,placa,n,ciclos_total,ciclos_compute,clk_mhz,fmax_mhz,tiempo_fpga_us,tiempo_compute_us,tiempo_cpu_us,speedup,speedup_compute,ok,git_hash
+2026-10-13T16:50:39,matmul/optimized,tangnano20k,3,14067,9,27.0,96.046,521.000,0.333,0.955,0.001832,2.8638,1,2ce97cf-dirty
+2026-10-13T16:50:40,matmul/optimized,tangnano20k,3,14067,9,27.0,96.046,521.000,0.333,0.945,0.001814,2.8349,1,2ce97cf-dirty
+2026-10-13T16:50:40,matmul/optimized,tangnano20k,3,14067,9,27.0,96.046,521.000,0.333,0.948,0.001820,2.8445,1,2ce97cf-dirty
+2026-10-13T16:50:41,matmul/optimized,tangnano20k,3,14066,9,27.0,96.046,520.963,0.333,0.977,0.001876,2.9312,1,2ce97cf-dirty
+2026-10-13T16:50:42,matmul/optimized,tangnano20k,3,14066,9,27.0,96.046,520.963,0.333,0.983,0.001886,2.9481,1,2ce97cf-dirty
