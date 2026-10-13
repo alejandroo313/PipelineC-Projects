@@ -93,6 +93,7 @@ def build(d, cfg, force):
     p = subprocess.run(cmd, cwd=d, capture_output=True, text=True, env={**os.environ, **cfg.get("env", {})})
     (bdir / f"{h}.log").write_text(p.stdout + p.stderr)
     if p.returncode != 0 or not (tmp / "top/impl/pnr/top.fs").exists():
+        shutil.rmtree(tmp, ignore_errors=True)
         sys.exit(f"[build] falló (rc={p.returncode}); log en {bdir}/{h}.log")
     shutil.rmtree(out, ignore_errors=True)
     tmp.rename(out)

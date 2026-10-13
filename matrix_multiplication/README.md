@@ -9,6 +9,8 @@ PC -> FPGA : A (N·N·2 bytes) + B (N·N·2 bytes)      [the variable-size versi
 FPGA -> PC : C = A·B (N·N·2 bytes)                  [arithmetic modulo 2^16]
 ```
 
+`pipelinec/matrix_multiplication_optimized.py` (the default `matmul` subproject) appends **16 bytes of cycle counters** after C (uint64 little-endian, FPGA clock, see [`../common/metrics.py`](../common/metrics.py)): `cycles_total` (first byte of A received → last byte of C accepted by the TX) and `cycles_compute` (last byte of B received → last cell of C computed, 9 cycles). Read them with `app/matrix_multiplication.py --metricas`. Real time = cycles / 27 MHz. Measured on the board: `cycles_total` ≈ 14 067 (521 µs), `cycles_compute` = 9 (0.33 µs). The other variants do not send the counters. This variant also discards everything received during the first 50 ms after configuration (a spurious byte appears on the board when the bitstream is loaded and used to misalign the first frame); send after that window, e.g. right after `openFPGALoader` returns.
+
 ## Contents
 
 | Path | Description |

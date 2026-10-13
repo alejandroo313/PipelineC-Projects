@@ -21,9 +21,13 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))   # los diseños (../)
 
 from pypeline import MAIN, initial, final, sim_input, sim_output, sim_finish
+STARTUP_DELAY_S = 0.0005           # ventana de arranque acortada (13 500 ciclos en vez de 1,35 M)
+os.environ["MATMUL_STARTUP_DELAY_S"] = str(STARTUP_DELAY_S)
 import matrix_multiplication_optimized as dut            # el diseño; sus Input/Output se leen como dut.<pin>
 
 N = 3
+BOOT_CYCLES = int(STARTUP_DELAY_S * dut.CLK_FREQ_MHZ * 1_000_000)
+TAIL = 16          # ciclos_total (8 B) + ciclos_compute (8 B), uint64 little-endian, tras C
 CYC_PER_BIT = int(dut.CLK_FREQ_MHZ * 1_000_000 / dut.BAUD_RATE)      # mismo calculo que uart_common.clk_per_bit
 
 # TODO: probar DOS tramas seguidas (A1,B1 y luego A2,B2) y comprobar C1 y C2, y que tras C2
@@ -72,7 +76,12 @@ def _hx(v):
 @initial(sim=True)
 def preparar():
     tx = build_input()
+    # Un byte espurio (0xA7) DENTRO de la ventana de arranque, como el que se ve en la placa al cargar
+    # el bitstream: la FPGA debe descartarlo; si lo contara, A quedaria desalineada y C seria incorrecta.
     line = [1] * (2 * CYC_PER_BIT)
+    for bit in [0] + [(0xA7 >> i) & 1 for i in range(8)] + [1]:
+        line += [bit] * CYC_PER_BIT
+    line += [1] * (BOOT_CYCLES + 2 * CYC_PER_BIT - len(line))   # silencio hasta pasada la ventana
     for b in tx:
         bits = [0] + [(b >> i) & 1 for i in range(8)] + [1]     # start, 8 datos LSB primero, stop
         for bit in bits:
@@ -81,7 +90,7 @@ def preparar():
     _st["tx_bytes"], _st["expected"], _st["line"] = tx, build_expected(), line
     _st["max_cycles"] = len(line) + 400 * CYC_PER_BIT           # margen para calcular y responder
     print(f"[TB] {CYC_PER_BIT} ciclos/bit (reloj {dut.CLK_FREQ_MHZ} MHz, {dut.BAUD_RATE} baudios); "
-          f"{len(tx)} bytes de entrada, {len(_st['expected'])} esperados")
+          f"{len(tx)} bytes de entrada, {len(_st['expected'])} de C + {TAIL} de metricas")
 
 
 @sim_input
@@ -117,7 +126,7 @@ def monitor():
             s["fsm"] = 0
 
     s["cycle"] += 1
-    if len(s["rx"]) >= len(s["expected"]) or s["cycle"] >= s["max_cycles"]:
+    if len(s["rx"]) >= len(s["expected"]) + TAIL or s["cycle"] >= s["max_cycles"]:
         sim_finish()
 
 
@@ -127,8 +136,21 @@ def informe():
     print(f"enviado  ({len(s['tx_bytes'])} bytes): {_hx(s['tx_bytes'])}")
     print(f"esperado ({len(s['expected'])} bytes): {_hx(s['expected'])}")
     print(f"recibido ({len(s['rx'])} bytes): {_hx(s['rx'])}")
-    ok = s["rx"] == s["expected"]
-    print(("OK: C = A*B coincide" if ok else "FALLO: la salida no coincide")
+    n_c = len(s["expected"])
+    ok = s["rx"][:n_c] == s["expected"]
+    tail = s["rx"][n_c:]
+    if len(tail) == TAIL:
+        total = int.from_bytes(bytes(tail[:8]), "little")
+        compute = int.from_bytes(bytes(tail[8:]), "little")
+        # total: 1er byte de A -> ultimo byte de C aceptado por el TX. Cota inferior: 36 B de
+        # entrada y 18 B de salida a 10 bits/byte (la entrada del TB deja ademas 1 bit de hueco/byte).
+        min_total = (36 + 18) * 10 * CYC_PER_BIT
+        print(f"ciclos_total={total} (>= {min_total}), ciclos_compute={compute} (esperado {N * N})")
+        ok = ok and compute == N * N and total >= min_total
+    else:
+        print(f"FALLO: faltan bytes de metricas ({len(tail)} de {TAIL})")
+        ok = False
+    print(("OK: C = A*B y metricas coinciden" if ok else "FALLO: la salida no coincide")
           + f" ({s['cycle']} ciclos simulados)")
 
 

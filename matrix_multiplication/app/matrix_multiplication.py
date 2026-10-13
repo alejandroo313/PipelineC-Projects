@@ -3,7 +3,7 @@
 Protocolo (ver pipelinec/matrix_multiplication.py), uint16 little-endian, fila a fila:
 
     PC -> FPGA : [N (1 byte, solo con --con-n)] + A (N*N*2 bytes) + B (N*N*2 bytes)
-    FPGA -> PC : C (N*N*2 bytes)
+    FPGA -> PC : C (N*N*2 bytes) [+ ciclos_total (8 B) + ciclos_compute (8 B) con --metricas]
 
 Los productos se acumulan en uint16, asi que el resultado esperado es modulo 65536.
 
@@ -43,8 +43,8 @@ def expected_product(A, B):
             for i in range(n)]
 
 
-def matrix_multiply(ser, A, B, con_n=False):
-    """Envia A y B a la FPGA y devuelve la matriz C recibida."""
+def matrix_multiply(ser, A, B, con_n=False, metricas=False):
+    """Envia A y B a la FPGA y devuelve la matriz C (y, con metricas, los ciclos total y compute)."""
     n = len(A)
     payload = (bytes([n]) if con_n else b"") + pack_matrix(A) + pack_matrix(B)
 
@@ -52,11 +52,15 @@ def matrix_multiply(ser, A, B, con_n=False):
     ser.write(payload)
     ser.flush()
 
-    expected_len = n * n * 2
+    expected_len = n * n * 2 + (16 if metricas else 0)
     data = ser.read(expected_len)
     if len(data) != expected_len:
         raise TimeoutError(f"La FPGA devolvio {len(data)} de {expected_len} bytes")
-    return unpack_matrix(data, n)
+    C = unpack_matrix(data[:n * n * 2], n)
+    if not metricas:
+        return C
+    total, compute = struct.unpack("<QQ", data[n * n * 2:])
+    return C, total, compute
 
 
 def print_matrix(name, m):
@@ -72,6 +76,9 @@ def main():
     p.add_argument("-n", type=int, default=3, help="tamano de la matriz (por defecto 3)")
     p.add_argument("--con-n", action="store_true",
                    help="anteponer el byte N (para FPGA/matrix_multiplication_n.py)")
+    p.add_argument("--metricas", action="store_true",
+                   help="leer los 16 bytes de ciclos (FPGA/matrix_multiplication_optimized.py)")
+    p.add_argument("--clk-mhz", type=float, default=27.0, help="reloj de la FPGA para convertir ciclos a tiempo")
     p.add_argument("--seed", type=int, default=None)
     args = p.parse_args()
 
@@ -84,9 +91,15 @@ def main():
     print_matrix("B", B)
 
     with serial.Serial(args.port, args.baud, timeout=1) as ser:
-        C = matrix_multiply(ser, A, B, args.con_n)
+        res = matrix_multiply(ser, A, B, args.con_n, args.metricas)
+    C = res[0] if args.metricas else res
 
     print_matrix("C (FPGA)", C)
+    if args.metricas:
+        _, total, compute = res
+        us = lambda c: c / args.clk_mhz
+        print(f"ciclos_total   = {total:>8d}  ({us(total):9.2f} us a {args.clk_mhz} MHz)")
+        print(f"ciclos_compute = {compute:>8d}  ({us(compute):9.2f} us)")
 
     expected = expected_product(A, B)
     if C == expected:
